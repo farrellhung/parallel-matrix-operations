@@ -1,4 +1,5 @@
 # **/*.sh
 .vscode
-tests/stdin
-tests/stdout
+tests
+!tests/bin
+!tests/config

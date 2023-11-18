@@ -12,6 +12,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////GLOBAL VARIABLES/STRUCTS////////////////////////////
+// #define MAX_THREADs 4;
+#define MAX_CALC_STACK 100
+
 int NUM_THREAD = 4;
 
 /**
@@ -33,6 +36,8 @@ struct thread_args {
 };
 typedef struct thread_args thread_args;
 
+Matrix* calc_stack[MAX_CALC_STACK];
+int top = -1;
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////FUNCTIONS///////////////////////////////////////
@@ -142,6 +147,20 @@ void print_matrix(Matrix* matrix) {
   return;
 }
 
+Matrix* add_sub_matrix_naive(Matrix* a, Matrix* b, int f) {
+  int row = a->row_length;
+  int col = a->col_length;
+
+  Matrix* c = create_matrix(row, col);
+  for (int i = 0; i < row; i++) {
+    for (int j = 0; j < col; j++) {
+      c->data[i][j] = a->data[i][j] + f * (b->data[i][j]);
+    }
+  }
+
+  return c;
+}
+
 /**
  * multiply_matrix(Matrix* a, Matrix* b)
  *
@@ -206,7 +225,7 @@ Matrix* multiply_matrix_naive(Matrix* a, Matrix* b) {
   int p = b->col_length;
 
   Matrix* c = create_matrix(n, p);
-  int bsize = 2;
+  // int bsize = 2;
 
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < p; j++) {
@@ -239,7 +258,37 @@ int main() {
     matrices[i] = matrix;
   }
 
+  for (int i = 0; i < matrix_count; i++) {
+    if (exp_postfix[i] >= 'A' && exp_postfix[i] <= 'Z') {
+      int idx = exp_postfix[i] - 'A';
+      // push operand matrix to calc_stack
+      calc_stack[++top] = matrices[idx];
+    }
+    else {
+      // pop operand matrix from calc_stack
+      Matrix* a = calc_stack[top--];
+      Matrix* b = calc_stack[top--];
+      // calculate matrix
+      Matrix* c = create_matrix(a->row_length, b->col_length);
+      switch (exp_postfix[i]) {
+      case '+':
+        c = add_sub_matrix_naive(a, b, 1);
+        break;
+      case '-':
+        c = add_sub_matrix_naive(a, b, -1);
+        break;
+      case '*':
+        c = multiply_matrix_naive(a, b);
+        break;
+      }
+      calc_stack[++top] = c;
+    }
+  }
+  print_matrix(calc_stack[top]);
 
+
+  /*
+  //
   Matrix* a = init_matrix(3, 3);
   Matrix* b = init_matrix(3, 3);
 
@@ -264,5 +313,7 @@ int main() {
   free(c);
 
   pthread_exit(NULL);
+  */
+
 }
 ////////////////////////////////////////////////////////////////////////////////
