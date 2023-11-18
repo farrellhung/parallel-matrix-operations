@@ -126,7 +126,9 @@ Matrix* create_matrix(int row_length, int col_length) {
 Matrix* init_matrix(int row_length, int col_length) {
   struct Matrix* matrix = create_matrix(row_length, col_length);
   for (int i = 0; i < row_length; i++) {
-    for (int j = 0; j < col_length; j++) scanf(" %d", &(matrix->data[i][j]));
+    for (int j = 0; j < col_length; j++){
+      scanf("%d", &(matrix->data[i][j]));
+    }
   }
   return matrix;
 }
@@ -141,8 +143,8 @@ Matrix* init_matrix(int row_length, int col_length) {
 */
 void print_matrix(Matrix* matrix) {
   for (int i = 0; i < matrix->row_length; i++) {
-    printf("%s", "\n");
     for (int j = 0; j < matrix->col_length; j++) printf("%d\t", matrix->data[i][j]);
+    printf("\n");
   }
   return;
 }
@@ -284,7 +286,9 @@ int main() {
       calc_stack[++top] = c;
     }
   }
-  print_matrix(calc_stack[top]);
+  Matrix* result = calc_stack[top];
+  printf("%d\t%d");
+  print_matrix(result);
 
 
   /*
