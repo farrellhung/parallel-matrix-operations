@@ -129,15 +129,9 @@ void* multiply_matrix_blocked(void* arg) {
   // ROW OF A = N (iterate as i), COLUMN OF A = M (iterate as k)
   // ROW OF B = M (iterate as k), COLUMN OF B = P (iterate as j)
 
-<<<<<<< HEAD
   int n = ((thread_args*)arg) -> a -> row_length;
   int m = ((thread_args*)arg) -> a -> col_length; // a -> col_length must be equal to b -> row_length. Otherwise mult is impossible!
   int p = ((thread_args*)arg) -> b -> col_length;
-=======
-  int n = a->row_length;
-  int m = a->col_length; // Expect a -> col_length to be equal to b -> row_length;
-  int p = b->col_length;
->>>>>>> 265d3cec5218a96ff13070b2f088e3cc5c0ec0f6
 
   int bsize = 16;     // block size must be smaller than portion_size
 
@@ -150,18 +144,11 @@ void* multiply_matrix_blocked(void* arg) {
   for (int jj = ((((thread_args*)arg) -> id) * portion_size); jj < ((((thread_args*)arg) -> id + 1) * portion_size); jj += bsize) {
     for (int kk = 0; kk < m; kk += bsize) {
       for (int i = 0; i < n; i++) {
-<<<<<<< HEAD
         for (int j = jj; j < min(min(jj+bsize,((((thread_args*)arg) -> id + 1) * portion_size)),p); j++) {
           int sum = 0;
           for (int k = kk; k < min(kk+bsize,m); k++)
             sum += ((thread_args*)arg) -> a -> data[i][k] * ((thread_args*)arg) -> b -> data[k][j];
           ((thread_args*)arg) -> c -> data[i][j] += sum;
-=======
-        for (int j = jj; j < min(jj + bsize, p); j++) {
-          int sum = 0;
-          for (int k = kk; k < min(kk + bsize, m); k++) sum += a->data[i][k] * b->data[k][j];
-          c->data[i][j] += sum;
->>>>>>> 265d3cec5218a96ff13070b2f088e3cc5c0ec0f6
         }
       }
     }
@@ -248,25 +235,6 @@ Matrix* multiply_matrix_naive(Matrix* a, Matrix* b) {
   return c;
 }
 
-<<<<<<< HEAD
-=======
-/**
- * min
- *
- * Returns the lowest value among the two given integers.
- *
- * Parameters:
- * a: integer to be compared.
- * b: second integer to be compared.
- *
- * Returns:
- * Integer of the minimum value among the two given parameters.
-*/
-int min(int a, int b) {
-  return a < b ? a : b;
-}
-
->>>>>>> 265d3cec5218a96ff13070b2f088e3cc5c0ec0f6
 ////////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////MAIN FUNCTION//////////////////////////////////
@@ -276,17 +244,8 @@ int main() {
   //   printf(buf);
   // }
 
-<<<<<<< HEAD
   Matrix* a = init_matrix(3,3);
   Matrix* b = init_matrix(3,3);
-=======
-  Matrix* a = init_matrix(3, 3);
-  Matrix* b = init_matrix(3, 3);
-  Matrix* c = multiply_matrix_naive(a, b);
-  print_matrix(c);
-  // Tried using 2x2 * 2x2, 2x3 * 3x2, and 3x3 * 3x3 works nicely.
-  // Need to try using large matrix later. bsize needs to be optimized according to the server's cache size.
->>>>>>> 265d3cec5218a96ff13070b2f088e3cc5c0ec0f6
 
   Matrix* c = create_matrix(a -> row_length, b -> col_length);
 
