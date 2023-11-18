@@ -15,7 +15,7 @@ int precedence(char op) {
     return 0;
 }
 
-char* infixToPostfix(char* expression, char* calculation_queue) {
+char* parseExpression(char* expression, char* calculation_queue) {
     int i, k;
     char operation_stack[strlen(expression)];
     int top = -1;
@@ -39,7 +39,7 @@ char* infixToPostfix(char* expression, char* calculation_queue) {
 int main() {
     char expression[] = "A*B+C*D";
     char calculation_queue[strlen(expression) + 1];
-    infixToPostfix(expression, calculation_queue);
+    parseExpression(expression, calculation_queue);
     printf("%s\n", calculation_queue); // "AB*CD*+"
     int a, b, c, d;
     scanf("%d %d %d %d", &a, &b, &c, &d);

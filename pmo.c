@@ -39,18 +39,47 @@ typedef struct thread_args thread_args;
 
 /**
  * min
- * 
+ *
  * Returns the lowest value among the two given integers.
- * 
+ *
  * Parameters:
  * a: integer to be compared.
  * b: second integer to be compared.
- * 
+ *
  * Returns:
  * Integer of the minimum value among the two given parameters.
 */
 int min(int a, int b) {
-    return a<b ? a : b;
+  return a < b ? a : b;
+}
+
+int precedence(char op) {
+  if (op == '+' || op == '-') return 1;
+  if (op == '*') return 2;
+  return 0;
+}
+
+char* parseExpression(char* exp_input, char* exp_postfix, int* matrix_count) {
+  int i, k;
+  char operation_stack[strlen(exp_input)];
+  int top = -1;
+
+  for (i = 0, k = -1; exp_input[i]; ++i) {
+    if (exp_input[i] >= 'A' && exp_input[i] <= 'Z') {
+      exp_postfix[++k] = exp_input[i];
+      (*matrix_count) += 1;
+    }
+    else {
+      while (top != -1 && precedence(exp_input[i]) <= precedence(operation_stack[top]))
+        exp_postfix[++k] = operation_stack[top--];
+      operation_stack[++top] = exp_input[i];
+    }
+  }
+
+  while (top != -1)
+    exp_postfix[++k] = operation_stack[top--];
+
+  exp_postfix[++k] = '\0';
 }
 
 /**
@@ -129,26 +158,26 @@ void* multiply_matrix_blocked(void* arg) {
   // ROW OF A = N (iterate as i), COLUMN OF A = M (iterate as k)
   // ROW OF B = M (iterate as k), COLUMN OF B = P (iterate as j)
 
-  int n = ((thread_args*)arg) -> a -> row_length;
-  int m = ((thread_args*)arg) -> a -> col_length; // a -> col_length must be equal to b -> row_length. Otherwise mult is impossible!
-  int p = ((thread_args*)arg) -> b -> col_length;
+  int n = ((thread_args*)arg)->a->row_length;
+  int m = ((thread_args*)arg)->a->col_length; // a -> col_length must be equal to b -> row_length. Otherwise mult is impossible!
+  int p = ((thread_args*)arg)->b->col_length;
 
   int bsize = 16;     // block size must be smaller than portion_size
 
-  int portion_size = (p + (NUM_THREAD - 1))/NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
+  int portion_size = (p + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
 
-  if (((((thread_args*)arg) -> id) * portion_size) > p) {   // if number of threads is larger than number of columns, exit.
+  if (((((thread_args*)arg)->id) * portion_size) > p) {   // if number of threads is larger than number of columns, exit.
     pthread_exit(NULL);
   }
 
-  for (int jj = ((((thread_args*)arg) -> id) * portion_size); jj < ((((thread_args*)arg) -> id + 1) * portion_size); jj += bsize) {
+  for (int jj = ((((thread_args*)arg)->id) * portion_size); jj < ((((thread_args*)arg)->id + 1) * portion_size); jj += bsize) {
     for (int kk = 0; kk < m; kk += bsize) {
       for (int i = 0; i < n; i++) {
-        for (int j = jj; j < min(min(jj+bsize,((((thread_args*)arg) -> id + 1) * portion_size)),p); j++) {
+        for (int j = jj; j < min(min(jj + bsize, ((((thread_args*)arg)->id + 1) * portion_size)), p); j++) {
           int sum = 0;
-          for (int k = kk; k < min(kk+bsize,m); k++)
-            sum += ((thread_args*)arg) -> a -> data[i][k] * ((thread_args*)arg) -> b -> data[k][j];
-          ((thread_args*)arg) -> c -> data[i][j] += sum;
+          for (int k = kk; k < min(kk + bsize, m); k++)
+            sum += ((thread_args*)arg)->a->data[i][k] * ((thread_args*)arg)->b->data[k][j];
+          ((thread_args*)arg)->c->data[i][j] += sum;
         }
       }
     }
@@ -193,23 +222,41 @@ Matrix* multiply_matrix_naive(Matrix* a, Matrix* b) {
 
 /////////////////////////////////MAIN FUNCTION//////////////////////////////////
 int main() {
-  Matrix* a = init_matrix(3,3);
-  Matrix* b = init_matrix(3,3);
+  char exp_input[100];
+  scanf("%s", &exp_input);
 
-  Matrix* c = create_matrix(a -> row_length, b -> col_length);
+  int exp_len = strlen(exp_input);
+  char exp_postfix[exp_len + 1];
+
+  int matrix_count = 0;
+  parseExpression(exp_input, exp_postfix, &matrix_count);
+
+  Matrix* matrices[matrix_count];
+  for (int i = 0; i < matrix_count; i++) {
+    int r, c;
+    scanf("%d\t%d", &r, &c);
+    Matrix* matrix = init_matrix(r, c);
+    matrices[i] = matrix;
+  }
+  
+
+  Matrix* a = init_matrix(3, 3);
+  Matrix* b = init_matrix(3, 3);
+
+  Matrix* c = create_matrix(a->row_length, b->col_length);
 
   thread_args* threads;
-  threads = (thread_args*)malloc( NUM_THREAD * sizeof(thread_args) );
+  threads = (thread_args*)malloc(NUM_THREAD * sizeof(thread_args));
   pthread_t tid[NUM_THREAD];
-  
-  for (int i = 0; i < NUM_THREAD; ++i ) {
+
+  for (int i = 0; i < NUM_THREAD; ++i) {
     thread_args params;
     params.id = i;
     params.a = a;
     params.b = b;
     params.c = c;
-    pthread_create( &tid[i], NULL, &multiply_matrix_blocked, (void*)&params );
-    pthread_join( tid[i], NULL );
+    pthread_create(&tid[i], NULL, &multiply_matrix_blocked, (void*)&params);
+    pthread_join(tid[i], NULL);
   }
   print_matrix(c);
   free(a);
