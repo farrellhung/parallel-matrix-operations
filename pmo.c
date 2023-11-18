@@ -260,7 +260,7 @@ int main() {
     matrices[i] = matrix;
   }
 
-  for (int i = 0; i < matrix_count; i++) {
+  for (int i = 0; i < exp_len; i++) {
     if (exp_postfix[i] >= 'A' && exp_postfix[i] <= 'Z') {
       int idx = exp_postfix[i] - 'A';
       // push operand matrix to calc_stack
@@ -268,8 +268,8 @@ int main() {
     }
     else {
       // pop operand matrix from calc_stack
+      Matrix* b = calc_stack[top--]; // b comes first to swap
       Matrix* a = calc_stack[top--];
-      Matrix* b = calc_stack[top--];
       // calculate matrix
       Matrix* c = create_matrix(a->row_length, b->col_length);
       switch (exp_postfix[i]) {
@@ -286,9 +286,8 @@ int main() {
       calc_stack[++top] = c;
     }
   }
-  Matrix* result = calc_stack[top];
-  printf("%d\t%d");
-  print_matrix(result);
+  printf("%d\t%d\n", calc_stack[top]->row_length, calc_stack[top]->col_length);
+  print_matrix(calc_stack[top]);
 
 
   /*
