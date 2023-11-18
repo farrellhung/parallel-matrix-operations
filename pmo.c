@@ -238,7 +238,7 @@ int main() {
     Matrix* matrix = init_matrix(r, c);
     matrices[i] = matrix;
   }
-  
+
 
   Matrix* a = init_matrix(3, 3);
   Matrix* b = init_matrix(3, 3);
