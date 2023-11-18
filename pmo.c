@@ -26,10 +26,10 @@ struct Matrix {
 };
 typedef struct Matrix Matrix;
 struct thread_args {
-  int id;
-  Matrix* a;
-  Matrix* b;
-  Matrix* c;
+  int id;               // thread id
+  Matrix* a;            // left operand matrix
+  Matrix* b;            // right operand matrix
+  Matrix* c;            // result matrix
 };
 typedef struct thread_args thread_args;
 
@@ -155,52 +155,6 @@ void* multiply_matrix_blocked(void* arg) {
   }
   pthread_exit(NULL);
 }
-// Matrix* multiply_matrix_blocked_column(Matrix* a, Matrix* b, size_t start_col, size_t end_col) {
-//   // ROW OF A = N (iterate as i), COLUMN OF A = M (iterate as k)
-//   // ROW OF B = M (iterate as k), COLUMN OF B = P (iterate as j)
-//   // ROW OF C: N. COL OF C: P.
-
-//   int n = a -> row_length;
-//   int m = a -> col_length; // Expect a -> col_length to be equal to b -> row_length;
-//   int p = b -> col_length;
-
-//   Matrix* c = create_matrix(n, p);
-//   int bsize = 16;
-//   int chunk_size = 16;
-
-//   int portion_size = p/NUM_THREAD; // 
-
-//   // For each chunk of columns
-//   for (size_t col_chunk = start_col; col_chunk < end_col; col_chunk += chunk_size)     // for each col chunk of C
-//     // For each chunk of rows
-//     for (size_t row_chunk = 0; row_chunk < n; row_chunk += chunk_size)                 // row chunk of C
-//       // For each block of elements in this row of this column chunk
-//       for (size_t tile = 0; tile < n; tile += bsize)                                   // for each block           
-//         // For apply that tile to each row of the row chunk
-//         for (size_t row = 0; row < bsize; row++)
-//           // For each row in the tile
-//           for (size_t tile_row = 0; tile_row < bsize; tile_row++)
-//             // Solve for each element in this tile row
-//             for (size_t k = 0; k < bsize; k++)
-//               c -> data[]
-//               c[(row + row_chunk) * N + col_chunk + idx] +=
-//                   a[(row + row_chunk) * N + tile + tile_row] *
-//                   b[tile * N + tile_row * N + col_chunk + idx];
-
-//   for (int jj = 0; jj < p; jj += bsize) {
-//     for (int kk = 0; kk < m; kk += bsize) {
-//       for (int i = 0; i < n; i++) {
-//         for (int j = jj; j < min(jj+bsize,p); j++) {
-//           int sum = 0;
-//           for (int k = kk; k < min(kk+bsize,m); k++) sum += a -> data[i][k] * b -> data[k][j];
-//           c -> data[i][j] += sum;
-//         }
-//       }
-//     }
-//   }
-//   return c;
-// }
-
 
 /**
  * multiply_matrix_naive(Matrix* a, Matrix* b)
@@ -239,11 +193,6 @@ Matrix* multiply_matrix_naive(Matrix* a, Matrix* b) {
 
 /////////////////////////////////MAIN FUNCTION//////////////////////////////////
 int main() {
-  // while (fgets(buf, sizeof buf, stdin) != NULL) {
-  //   if (sscanf(buf, "%31s", buf) != 1) break;
-  //   printf(buf);
-  // }
-
   Matrix* a = init_matrix(3,3);
   Matrix* b = init_matrix(3,3);
 
@@ -251,8 +200,6 @@ int main() {
 
   thread_args* threads;
   threads = (thread_args*)malloc( NUM_THREAD * sizeof(thread_args) );
-
-  thread_args* arg_list;
   pthread_t tid[NUM_THREAD];
   
   for (int i = 0; i < NUM_THREAD; ++i ) {
