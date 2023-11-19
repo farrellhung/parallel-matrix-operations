@@ -12,10 +12,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////GLOBAL VARIABLES/STRUCTS////////////////////////////
-// #define MAX_THREADs 4;
 #define MAX_CALC_STACK 100
-
-int NUM_THREAD = 6;
+#define NUM_THREAD 4
 
 /**
  * struct Matrix
@@ -163,6 +161,41 @@ Matrix* add_sub_matrix_naive(Matrix* a, Matrix* b, int f) {
   return c;
 }
 
+void* add_matrix(void* arg) {
+  int n = ((thread_args*)arg)->a->row_length;
+  int m = ((thread_args*)arg)->a->col_length;
+
+  int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
+
+  if (((((thread_args*)arg)->id) * portion_size) > m) {   // if number of threads is larger than number of columns, exit.
+    pthread_exit(NULL);
+  }
+  
+  for (int i = 0; i < n; i++) {
+    for (int k = ((((thread_args*)arg)->id) * portion_size); k < min(m, ((((thread_args*)arg)->id + 1) * portion_size)); k++) {
+      ((thread_args*)arg)->c->data[i][k] += ((thread_args*)arg)->a->data[i][k] + ((thread_args*)arg)->b->data[i][k];
+    }
+  }
+}
+
+void* sub_matrix(void* arg) {
+  int n = ((thread_args*)arg)->a->row_length;
+  int m = ((thread_args*)arg)->a->col_length;
+
+  int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
+
+  if (((((thread_args*)arg)->id) * portion_size) > m) {   // if number of threads is larger than number of columns, exit.
+    pthread_exit(NULL);
+  }
+  
+  for (int i = 0; i < n; i++) {
+    for (int k = ((((thread_args*)arg)->id) * portion_size); k < min(m, ((((thread_args*)arg)->id + 1) * portion_size)); k++) {
+     ((thread_args*)arg)->c->data[i][k] += ((thread_args*)arg)->a->data[i][k] - ((thread_args*)arg)->b->data[i][k];
+    }
+  }
+}
+
+
 /**
  * multiply_matrix(Matrix* a, Matrix* b)
  *
@@ -183,7 +216,7 @@ void* multiply_matrix_blocked(void* arg) {
   int m = ((thread_args*)arg)->a->col_length; // a -> col_length must be equal to b -> row_length. Otherwise mult is impossible!
   int p = ((thread_args*)arg)->b->col_length;
 
-  int bsize = 32;     // block size must be smaller than portion_size
+  int bsize = 64;     // block size must be smaller than portion_size
 
   int portion_size = (p + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
 
@@ -246,7 +279,6 @@ Matrix* multiply_matrix_naive(Matrix* a, Matrix* b) {
   int p = b->col_length;
 
   Matrix* c = create_matrix(n, p);
-  // int bsize = 2;
 
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < p; j++) {
@@ -289,22 +321,12 @@ int main() {
       // pop operand matrix from calc_stack
       Matrix* b = calc_stack[top--]; // b comes first to swap
       Matrix* a = calc_stack[top--];
-      // calculate matrix
       Matrix* c = create_matrix(a->row_length, b->col_length);
+      thread_args args_pool[NUM_THREAD];
+      pthread_t tid[NUM_THREAD];
+
       switch (exp_postfix[i]) {
       case '+':
-        c = add_sub_matrix_naive(a, b, 1);
-        break;
-      case '-':
-        c = add_sub_matrix_naive(a, b, -1);
-        break;
-      case '*':
-        // c = multiply_matrix_naive(a, b);
-
-        thread_args args_pool[NUM_THREAD];
-        pthread_t tid[NUM_THREAD];
-
-        int error;
         for (int i = 0; i < NUM_THREAD; ++i) {
           thread_args params;
           params.id = i;
@@ -312,8 +334,35 @@ int main() {
           params.b = b;
           params.c = c;
           args_pool[i] = params;
-          error = pthread_create(&tid[i], NULL, &multiply_matrix_blocked, (void*)&args_pool[i]);
-          if (error != 0) printf("\nThread can't be created :[%s]", strerror(error)); 
+          pthread_create(&tid[i], NULL, &add_matrix, (void*)&args_pool[i]);
+        }
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          pthread_join(tid[i], NULL);
+        }
+        break;
+      case '-':
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          thread_args params;
+          params.id = i;
+          params.a = a;
+          params.b = b;
+          params.c = c;
+          args_pool[i] = params;
+          pthread_create(&tid[i], NULL, &sub_matrix, (void*)&args_pool[i]);
+        }
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          pthread_join(tid[i], NULL);
+        }
+        break;
+      case '*':
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          thread_args params;
+          params.id = i;
+          params.a = a;
+          params.b = b;
+          params.c = c;
+          args_pool[i] = params;
+          pthread_create(&tid[i], NULL, &multiply_matrix_blocked, (void*)&args_pool[i]);
         }
         for (int i = 0; i < NUM_THREAD; ++i) {
           pthread_join(tid[i], NULL);
@@ -321,6 +370,8 @@ int main() {
         break;
       }
       calc_stack[++top] = c;
+      free(a);
+      free(b);
     }
   }
   
