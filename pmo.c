@@ -16,16 +16,29 @@
 #define NUM_THREAD 4
 
 /**
- * struct Matrix
+ * @struct Matrix
+ * @brief Represents a matrix.
  *
  * A Matrix struct to help keep track of the matrix size in addition to the matrix value.
-*/
+ */
 struct Matrix {
   int row_length;       // number of rows
   int col_length;       // number of column
   int** data;           // pointer for a 2D array containing the matrix values
 };
 typedef struct Matrix Matrix;
+
+
+/**
+ * @struct thread_args
+ * @brief Structure to hold arguments for a thread.
+ * 
+ * This structure is used to pass arguments to a thread function.
+ * It can be used to pass data or parameters that are required by the thread.
+ */
+struct thread_args {
+  // ... (add members here)
+};
 struct thread_args {
   int id;               // thread id
   Matrix* a;            // left operand matrix
@@ -56,12 +69,26 @@ int min(int a, int b) {
   return a < b ? a : b;
 }
 
+/**
+ * Calculates the precedence of an operator.
+ *
+ * @param op The operator whose precedence is to be calculated.
+ * @return The precedence value of the operator.
+ */
 int precedence(char op) {
   if (op == '+' || op == '-') return 1;
   if (op == '*') return 2;
   return 0;
 }
 
+/**
+ * Parses the given expression and converts it into postfix notation.
+ *
+ * @param exp_input The input expression to be parsed.
+ * @param exp_postfix The resulting postfix expression.
+ * @param matrix_count The number of matrices in the expression.
+ * @return A pointer to the resulting postfix expression.
+ */
 char* parseExpression(char* exp_input, char* exp_postfix, int* matrix_count) {
   int i, k;
   char operation_stack[strlen(exp_input)];
@@ -124,7 +151,7 @@ Matrix* create_matrix(int row_length, int col_length) {
 Matrix* init_matrix(int row_length, int col_length) {
   struct Matrix* matrix = create_matrix(row_length, col_length);
   for (int i = 0; i < row_length; i++) {
-    for (int j = 0; j < col_length; j++){
+    for (int j = 0; j < col_length; j++) {
       scanf("%d", &(matrix->data[i][j]));
     }
   }
@@ -147,6 +174,15 @@ void print_matrix(Matrix* matrix) {
   return;
 }
 
+/**
+ * Adds or subtracts two matrices using a naive approach.
+ *
+ * @param a The first matrix.
+ * @param b The second matrix.
+ * @param f The flag indicating whether to add or subtract the matrices.
+ *          Use 1 for addition and -1 for subtraction.
+ * @return The resulting matrix after the addition or subtraction operation.
+ */
 Matrix* add_sub_matrix_naive(Matrix* a, Matrix* b, int f) {
   int row = a->row_length;
   int col = a->col_length;
@@ -161,6 +197,16 @@ Matrix* add_sub_matrix_naive(Matrix* a, Matrix* b, int f) {
   return c;
 }
 
+/**
+ * Function: add_matrix
+ * ---------------------
+ * This function is responsible for adding two matrices.
+ * It takes a void pointer as an argument.
+ *
+ * arg: a pointer to the argument passed to the thread function.
+ *
+ * Returns: void pointer
+ */
 void* add_matrix(void* arg) {
   int n = ((thread_args*)arg)->a->row_length;
   int m = ((thread_args*)arg)->a->col_length;
@@ -170,7 +216,7 @@ void* add_matrix(void* arg) {
   if (((((thread_args*)arg)->id) * portion_size) > m) {   // if number of threads is larger than number of columns, exit.
     pthread_exit(NULL);
   }
-  
+
   for (int i = 0; i < n; i++) {
     for (int k = ((((thread_args*)arg)->id) * portion_size); k < min(m, ((((thread_args*)arg)->id + 1) * portion_size)); k++) {
       ((thread_args*)arg)->c->data[i][k] += ((thread_args*)arg)->a->data[i][k] + ((thread_args*)arg)->b->data[i][k];
@@ -178,6 +224,17 @@ void* add_matrix(void* arg) {
   }
 }
 
+/**
+ * Function: sub_matrix
+ * ---------------------
+ * This function is responsible for performing operations on a sub-matrix of a larger matrix.
+ * It takes a void pointer as an argument, which can be cast to the appropriate data type.
+ * The function should be executed in a separate thread.
+ *
+ * arg: A void pointer to the sub-matrix data.
+ *
+ * returns: None.
+ */
 void* sub_matrix(void* arg) {
   int n = ((thread_args*)arg)->a->row_length;
   int m = ((thread_args*)arg)->a->col_length;
@@ -187,10 +244,10 @@ void* sub_matrix(void* arg) {
   if (((((thread_args*)arg)->id) * portion_size) > m) {   // if number of threads is larger than number of columns, exit.
     pthread_exit(NULL);
   }
-  
+
   for (int i = 0; i < n; i++) {
     for (int k = ((((thread_args*)arg)->id) * portion_size); k < min(m, ((((thread_args*)arg)->id + 1) * portion_size)); k++) {
-     ((thread_args*)arg)->c->data[i][k] += ((thread_args*)arg)->a->data[i][k] - ((thread_args*)arg)->b->data[i][k];
+      ((thread_args*)arg)->c->data[i][k] += ((thread_args*)arg)->a->data[i][k] - ((thread_args*)arg)->b->data[i][k];
     }
   }
 }
@@ -224,12 +281,6 @@ void* multiply_matrix_blocked(void* arg) {
     pthread_exit(NULL);
   }
 
-  // int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
-
-  // if (((((thread_args*)arg)->id) * portion_size) > m) {   // if number of threads is larger than number of columns, exit.
-  //   pthread_exit(NULL);
-  // }
-
   for (int jj = ((((thread_args*)arg)->id) * portion_size); jj < ((((thread_args*)arg)->id + 1) * portion_size); jj += bsize) {
     for (int kk = 0; kk < m; kk += bsize) {
       for (int i = 0; i < n; i++) {
@@ -243,18 +294,6 @@ void* multiply_matrix_blocked(void* arg) {
     }
   }
 
-  // for (int kk = ((((thread_args*)arg)->id) * portion_size); kk < ((((thread_args*)arg)->id + 1) * portion_size); kk += bsize) {
-  //   for (int jj = 0; jj < p; jj += bsize) {
-  //     for (int i = 0; i < n; i++) {
-  //       for (int j = jj; j < min(jj + bsize, p); j++) {
-  //         int sum = 0;
-  //         for (int k = kk; k < min(min(kk + bsize, ((((thread_args*)arg)->id + 1) * portion_size)), m); k++)
-  //           sum += ((thread_args*)arg)->a->data[i][k] * ((thread_args*)arg)->b->data[k][j];
-  //         ((thread_args*)arg)->c->data[i][j] += sum;
-  //       }
-  //     }
-  //   }
-  // }
   pthread_exit(NULL);
 }
 
@@ -374,7 +413,7 @@ int main() {
       free(b);
     }
   }
-  
+
   printf("%d\t%d\n", calc_stack[top]->row_length, calc_stack[top]->col_length);
   print_matrix(calc_stack[top]);
   pthread_exit(NULL);
