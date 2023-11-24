@@ -83,7 +83,7 @@ int precedence(char op) {
 char* parseExpression(char* exp_input, char* exp_postfix, unsigned char* matrix_count) {
   int i, k;
   char operation_stack[strlen(exp_input)];
-  int top = -1;
+  int stack_pointer = -1;
 
   for (i = 0, k = -1; exp_input[i]; ++i) {
     if (exp_input[i] >= 'A' && exp_input[i] <= 'Z') {
@@ -91,14 +91,14 @@ char* parseExpression(char* exp_input, char* exp_postfix, unsigned char* matrix_
       (*matrix_count) += 1;
     }
     else {
-      while (top != -1 && precedence(exp_input[i]) <= precedence(operation_stack[top]))
-        exp_postfix[++k] = operation_stack[top--];
-      operation_stack[++top] = exp_input[i];
+      while (stack_pointer != -1 && precedence(exp_input[i]) <= precedence(operation_stack[stack_pointer]))
+        exp_postfix[++k] = operation_stack[stack_pointer--];
+      operation_stack[++stack_pointer] = exp_input[i];
     }
   }
 
-  while (top != -1)
-    exp_postfix[++k] = operation_stack[top--];
+  while (stack_pointer != -1)
+    exp_postfix[++k] = operation_stack[stack_pointer--];
 
   exp_postfix[++k] = '\0';
 }
@@ -111,12 +111,13 @@ char* parseExpression(char* exp_input, char* exp_postfix, unsigned char* matrix_
  * @return            matrix pointer to the generated empty matrix.
 */
 Matrix* createMatrix(int row_length, int col_length) {
-  struct Matrix* matrix = malloc(sizeof(matrix)); // Allocates memory dynamically
+  struct Matrix* matrix = malloc(sizeof(matrix)); // allocates dynamic memory for the matrix struct
   matrix->row_length = row_length;
   matrix->col_length = col_length;
-  int** data = malloc(sizeof(int*) * row_length);
+  int** data = malloc(sizeof(int*) * row_length); // allocates dynamic memory for the size of matrix data
+  // allocates memory for every cell of the matrix, and initialize it as 0
   for (int i = 0; i < row_length; i++)
-    data[i] = calloc(col_length, sizeof(int)); // init as 0
+    data[i] = calloc(col_length, sizeof(int)); 
   matrix -> data = data;
   return matrix;
 }
@@ -129,7 +130,9 @@ Matrix* createMatrix(int row_length, int col_length) {
  * @return            matrix pointer to the initialized matrix.
 */
 Matrix* initMatrix(int row_length, int col_length) {
+  // create an empty matrix according to the requested size
   struct Matrix* matrix = createMatrix(row_length, col_length);
+  // scans for the input matrix values and update the matrix data accordingly
   for (int i = 0; i < row_length; i++)
     for (int j = 0; j < col_length; j++)
       scanf("%d", &(matrix->data[i][j]));
@@ -142,6 +145,7 @@ Matrix* initMatrix(int row_length, int col_length) {
  * @param matrix The matrix to be printed out.
 */
 void printMatrix(Matrix* matrix) {
+  // print the matrix data by iterating through every rows and columns of the matrix
   for (int i = 0; i < matrix->row_length; i++) {
     for (int j = 0; j < matrix->col_length; j++)
       printf("%d\t", matrix->data[i][j]);
@@ -156,22 +160,24 @@ void printMatrix(Matrix* matrix) {
  * @param arg Pointer to the argument struct ThreadArgs.
  */
 void* addMatrix(void* arg) {
-  // Unpack the struct
+  // Unpack the struct. n is the row of the matrix while m is the column of the matrix.
   unsigned int n = ((ThreadArgs*)arg)->a->row_length;
   unsigned int m = ((ThreadArgs*)arg)->a->col_length;
+  unsigned char id = (((ThreadArgs*)arg)->id);
 
-  // Calculates p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
+  // calculates which portion of the matrix that the current thread is responsible to calculate for.
+  // in the event of non-integer results, portion_size is rounded up instead of truncated.
   unsigned int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD;
-  unsigned int portion_end = ((((ThreadArgs*)arg)->id + 1) * portion_size);
+  unsigned int portion_end = ((id + 1) * portion_size);
 
-  if (((((ThreadArgs*)arg)->id) * portion_size) > m)   // if number of threads is larger than number of columns, exit.
+  // if the thread ID is larger than the number of columns, there is no more available job. exit right away.
+  if ((id * portion_size) > m)
     pthread_exit(NULL);
 
-  for (int i = 0; i < n; i++) {
-    for (int k = ((((ThreadArgs*)arg)->id) * portion_size); k < min(m, portion_end); k++) {
-      ((ThreadArgs*)arg)->c->data[i][k] += ((ThreadArgs*)arg)->a->data[i][k] + ((ThreadArgs*)arg)->b->data[i][k];
-    }
-  }
+  // for every cells in this thread's work portion, adds a with b and put the results in c.
+  for (int i = 0; i < n; i++)
+    for (int j = (id * portion_size); j < min(m, portion_end); j++)
+      ((ThreadArgs*)arg)->c->data[i][j] += ((ThreadArgs*)arg)->a->data[i][j] + ((ThreadArgs*)arg)->b->data[i][j];
 }
 
 /**
@@ -180,20 +186,24 @@ void* addMatrix(void* arg) {
  * @param arg Pointer to the argument struct ThreadArgs.
  */
 void* subtractMatrix(void* arg) {
+  // Unpack the struct. n is the row of the matrix while m is the column of the matrix.
   unsigned int n = ((ThreadArgs*)arg)->a->row_length;
   unsigned int m = ((ThreadArgs*)arg)->a->col_length;
+  unsigned char id = (((ThreadArgs*)arg)->id);
 
-  unsigned int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD; // p/NUM_THREAD but rounds up instead of truncating. this makes sure that all columns are included.
-  unsigned int portion_end = ((((ThreadArgs*)arg)->id + 1) * portion_size);
+  // calculates which portion of the matrix that the current thread is responsible to calculate for.
+  // in the event of non-integer results, portion_size is rounded up instead of truncated.
+  unsigned int portion_size = (m + (NUM_THREAD - 1)) / NUM_THREAD;
+  unsigned int portion_end = ((id + 1) * portion_size);
 
-  if (((((ThreadArgs*)arg)->id) * portion_size) > m)   // if number of threads is larger than number of columns, exit.
+  // if the thread ID is larger than the number of columns, there is no more available job. exit right away.
+  if ((id * portion_size) > m)
     pthread_exit(NULL);
 
-  for (int i = 0; i < n; i++) {
-    for (int k = ((((ThreadArgs*)arg)->id) * portion_size); k < min(m, portion_end); k++) {
-      ((ThreadArgs*)arg)->c->data[i][k] += ((ThreadArgs*)arg)->a->data[i][k] - ((ThreadArgs*)arg)->b->data[i][k];
-    }
-  }
+  // for every cells in this thread's work portion, subtracts a with b and put the results in c.
+  for (int i = 0; i < n; i++)
+    for (int j = (id * portion_size); j < min(m, portion_end); j++)
+      ((ThreadArgs*)arg)->c->data[i][j] += ((ThreadArgs*)arg)->a->data[i][j] - ((ThreadArgs*)arg)->b->data[i][j];
 }
 
 
@@ -203,34 +213,29 @@ void* subtractMatrix(void* arg) {
  * @param arg Pointer to the argument struct ThreadArgs.
 */
 void* multiplyMatrix(void* arg) {
-  // ROW OF A = N (iterate as i), COLUMN OF A = M (iterate as k)
-  // ROW OF B = M (iterate as k), COLUMN OF B = P (iterate as j)
-
   // n is the row length of matrix A, which is also equal to the row length of the resulting matrix C.
   // m is the column length of matrix A, which is also equal to the row length of matrix B.
   // p is the column length of matrix B, which is also equal to the column length of the resulting matrix C.
   unsigned int n = ((ThreadArgs*)arg)->a->row_length;
   unsigned int m = ((ThreadArgs*)arg)->a->col_length;
   unsigned int p = ((ThreadArgs*)arg)->b->col_length;
+  unsigned char id = (((ThreadArgs*)arg)->id);
 
   // calculates which portion of the matrix that the current thread is responsible to calculate for.
-  // portion_size is basically p divided by the number of threads.
-  // However, to ensure that all columns are included, portion_size is rounded up instead of truncated.
-  unsigned int portion_size = (p + (NUM_THREAD - 1)) / NUM_THREAD; // divides p by NUM_THREAD and round up the result
-  unsigned int portion_end = ((((ThreadArgs*)arg)->id + 1) * portion_size); // end of the this thread's portion
+  // in the event of non-integer results, portion_size is rounded up instead of truncated.
+  unsigned int portion_size = (p + (NUM_THREAD - 1)) / NUM_THREAD;
+  unsigned int portion_end = ((id + 1) * portion_size);
 
-  // Exit the thread if the current thread number is larger than p.
-  // For example, when multiplying two 3x3 matrices with 4 threads.
-  // We cannot divide the job based on p into more than 3 jobs since p = 3.
-  // Thus, the fourth thread will not do anything.
-  if (((((ThreadArgs*)arg)->id) * portion_size) > p)
+  // if the thread ID is larger than the number of columns, there is no more available job. exit right away.
+  if ((id * portion_size) > p)
     pthread_exit(NULL);
 
+  // in the following iterations, n is iterated as i, m is is iterated as k, and p is iterated as j.
   // for jj as each column chunk in matrix C...
-  for (int jj = ((((ThreadArgs*)arg)->id) * portion_size); jj < portion_end; jj += BLOCK_SIZE) {
+  for (int jj = (id * portion_size); jj < portion_end; jj += BLOCK_SIZE) {
     // for kk as each k chunk...
     for (int kk = 0; kk < m; kk += BLOCK_SIZE) {
-      // for every row of matrix C
+      // for every row of matrix C...
       for (int i = 0; i < n; i++) {
         // for every column in matrix C inside the current iteration's block...
         for (int j = jj; j < min(min(jj + BLOCK_SIZE, portion_end), p); j++) {
@@ -250,7 +255,7 @@ void* multiplyMatrix(void* arg) {
 
 
 /**
- * Adds or subtracts two matrices without using threads.
+ * Adds or subtracts two matrices without using threads. For comparison purposes only (not used).
  *
  * @param a The first matrix (left operand).
  * @param b The second matrix (right operand).
@@ -272,18 +277,15 @@ Matrix* naiveAddSubMatrix(Matrix* a, Matrix* b, signed char f) {
 }
 
 /**
- * Multiplies 2 matrices using the naive approach, without using threads.
+ * Multiplies 2 matrices using the naive approach, without using threads. For comparison purposes only (not used).
  *
  * @param a Left operand matrix.
  * @param b Right operand matrix.
  * @return  The resulting matrix after the multiplication.
 */
 Matrix* naiveMultiplyMatrix(Matrix* a, Matrix* b) {
-  // ROW OF A = N (iterate as i), COLUMN OF A = M (iterate as k)
-  // ROW OF B = M (iterate as k), COLUMN OF B = P (iterate as j)
-
   int n = a->row_length;
-  int m = a->col_length; // Expect a -> col_length to be equal to b -> row_length;
+  int m = a->col_length;
   int p = b->col_length;
 
   Matrix* c = createMatrix(n, p);
@@ -302,8 +304,9 @@ Matrix* naiveMultiplyMatrix(Matrix* a, Matrix* b) {
 
 /////////////////////////////////MAIN FUNCTION//////////////////////////////////
 int main() {
+  // read and parse expression
   Matrix* calc_stack[MAX_CALC_STACK];
-  int top = -1;
+  int stack_pointer = -1;
 
   char exp_input[100];
   scanf("%s", &exp_input);
@@ -314,6 +317,7 @@ int main() {
   unsigned char matrix_count = 0;
   parseExpression(exp_input, exp_postfix, &matrix_count);
 
+  // read the input matrices
   Matrix* input_matrices[matrix_count];
   for (int i = 0; i < matrix_count; i++) {
     int r, c;
@@ -322,64 +326,89 @@ int main() {
     input_matrices[i] = matrix;
   }
 
+  // for every char of the expression...
   for (int i = 0; i < exp_len; i++) {
+    // if it a matrix operand (denoted by a letter), push it to calc_stack
     if (exp_postfix[i] >= 'A' && exp_postfix[i] <= 'Z') {
       int idx = exp_postfix[i] - 'A';
-      // push operand matrix to calc_stack
-      calc_stack[++top] = input_matrices[idx];
+      calc_stack[++stack_pointer] = input_matrices[idx];
     }
+    // otherwise, it is an operator. hence, calculate the operandstack.
     else {
       // pop operand matrix from calc_stack
-      Matrix* b = calc_stack[top--]; // b comes first to swap
-      Matrix* a = calc_stack[top--];
+      Matrix* b = calc_stack[stack_pointer--];    // b comes first to swap
+      Matrix* a = calc_stack[stack_pointer--];
+
+      // create a new matrix to store the results
       Matrix* c = createMatrix(a->row_length, b->col_length);
+
+      // args_pool as an array to store different thread arguments
       ThreadArgs args_pool[NUM_THREAD];
+      // tid as an array to store different thread IDs
       pthread_t tid[NUM_THREAD];
 
+      // performs operation based on the operator
       switch (exp_postfix[i]) {
       case '+':
+        // for the amount of threads we generate...
         for (int i = 0; i < NUM_THREAD; ++i) {
+          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
           ThreadArgs params;
           params.id = i;
           params.a = a;
           params.b = b;
           params.c = c;
           args_pool[i] = params;
+          // create the thread, passing the argument struct in addition to the thread ID
           pthread_create(&tid[i], NULL, &addMatrix, (void*)&args_pool[i]);
         }
         break;
       case '-':
+        // for the amount of threads we generate...
         for (int i = 0; i < NUM_THREAD; ++i) {
+          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
           ThreadArgs params;
           params.id = i;
           params.a = a;
           params.b = b;
           params.c = c;
           args_pool[i] = params;
+          // create the thread, passing the argument struct in addition to the thread ID
           pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
         }
         break;
       case '*':
+        // for the amount of threads we generate...
         for (int i = 0; i < NUM_THREAD; ++i) {
+          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
           ThreadArgs params;
           params.id = i;
           params.a = a;
           params.b = b;
           params.c = c;
           args_pool[i] = params;
+          // create the thread, passing the argument struct in addition to the thread ID
           pthread_create(&tid[i], NULL, &multiplyMatrix, (void*)&args_pool[i]);
         }
         break;
       }
+
+      // wait until all threads finish running
       for (int i = 0; i < NUM_THREAD; ++i) {
         pthread_join(tid[i], NULL);
       }
-      calc_stack[++top] = c;
+
+      // put the result on stack
+      calc_stack[++stack_pointer] = c;
+
+      // free the memory of the operand matrices
       free(a);
       free(b);
     }
   }
-  printf("%d\t%d\n", calc_stack[top]->row_length, calc_stack[top]->col_length);
-  printMatrix(calc_stack[top]);
+
+  // output the results
+  printf("%d\t%d\n", calc_stack[stack_pointer]->row_length, calc_stack[stack_pointer]->col_length);
+  printMatrix(calc_stack[stack_pointer]);
 }
 ////////////////////////////////////////////////////////////////////////////////
