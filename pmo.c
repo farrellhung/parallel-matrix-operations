@@ -351,31 +351,33 @@ int main() {
       switch (exp_postfix[i]) {
       case '+':
         // for the amount of threads we generate...
-        for (int i = 0; i < NUM_THREAD; ++i) {
-          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
-          ThreadArgs params;
-          params.id = i;
-          params.a = a;
-          params.b = b;
-          params.c = c;
-          args_pool[i] = params;
-          // create the thread, passing the argument struct in addition to the thread ID
-          pthread_create(&tid[i], NULL, &addMatrix, (void*)&args_pool[i]);
-        }
+        c = naiveAddSubMatrix(a, b, 1);
+        // for (int i = 0; i < NUM_THREAD; ++i) {
+        //   // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
+        //   ThreadArgs params;
+        //   params.id = i;
+        //   params.a = a;
+        //   params.b = b;
+        //   params.c = c;
+        //   args_pool[i] = params;
+        //   // create the thread, passing the argument struct in addition to the thread ID
+        //   pthread_create(&tid[i], NULL, &addMatrix, (void*)&args_pool[i]);
+        // }
         break;
       case '-':
         // for the amount of threads we generate...
-        for (int i = 0; i < NUM_THREAD; ++i) {
-          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
-          ThreadArgs params;
-          params.id = i;
-          params.a = a;
-          params.b = b;
-          params.c = c;
-          args_pool[i] = params;
-          // create the thread, passing the argument struct in addition to the thread ID
-          pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
-        }
+        c = naiveAddSubMatrix(a, b, -1);
+        // for (int i = 0; i < NUM_THREAD; ++i) {
+        //   // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
+        //   ThreadArgs params;
+        //   params.id = i;
+        //   params.a = a;
+        //   params.b = b;
+        //   params.c = c;
+        //   args_pool[i] = params;
+        //   // create the thread, passing the argument struct in addition to the thread ID
+        //   pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
+        // }
         break;
       case '*':
         // for the amount of threads we generate...
