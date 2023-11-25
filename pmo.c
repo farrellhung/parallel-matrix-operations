@@ -33,7 +33,7 @@ typedef struct Matrix Matrix;
 /**
  * @struct  thread_args
  * @brief   Structure to hold arguments for a thread.
- * 
+ *
  * This structure is used to pass arguments to a thread function.
  * It can be used to pass data or parameters that are required by the thread.
  */
@@ -81,26 +81,31 @@ int precedence(char op) {
  * @return              A pointer to the resulting postfix expression.
  */
 char* parseExpression(char* exp_input, char* exp_postfix, unsigned char* matrix_count) {
-  int i, k;
-  char operation_stack[strlen(exp_input)];
+  int i, k; // i for infix (input) index, k for postfix index
+  char operation_stack[strlen(exp_input)]; // stack to store operators temporarily
   int stack_pointer = -1;
 
+  // loop through every input expression characters
   for (i = 0, k = -1; exp_input[i]; ++i) {
+    // if character is a matrix operand, append it to the postfix expression
     if (exp_input[i] >= 'A' && exp_input[i] <= 'Z') {
       exp_postfix[++k] = exp_input[i];
       (*matrix_count) += 1;
     }
     else {
-      while (stack_pointer != -1 && precedence(exp_input[i]) <= precedence(operation_stack[stack_pointer]))
+      while (stack_pointer != -1
+        && precedence(exp_input[i]) <= precedence(operation_stack[stack_pointer])) {
+        // if the current operator has lower precedence than the operator in the stack, pop the stack
         exp_postfix[++k] = operation_stack[stack_pointer--];
-      operation_stack[++stack_pointer] = exp_input[i];
+      }
+      operation_stack[++stack_pointer] = exp_input[i]; // push the current operator to the temp stack
     }
   }
 
   while (stack_pointer != -1)
     exp_postfix[++k] = operation_stack[stack_pointer--];
 
-  exp_postfix[++k] = '\0';
+  exp_postfix[++k] = '\0'; // NULL character for end of string
 }
 
 /**
@@ -117,8 +122,8 @@ Matrix* createMatrix(int row_length, int col_length) {
   int** data = malloc(sizeof(int*) * row_length); // allocates dynamic memory for the size of matrix data
   // allocates memory for every cell of the matrix, and initialize it as 0
   for (int i = 0; i < row_length; i++)
-    data[i] = calloc(col_length, sizeof(int)); 
-  matrix -> data = data;
+    data[i] = calloc(col_length, sizeof(int));
+  matrix->data = data;
   return matrix;
 }
 
@@ -300,16 +305,16 @@ Matrix* naiveMultiplyMatrix(Matrix* a, Matrix* b) {
 
 /////////////////////////////////MAIN FUNCTION//////////////////////////////////
 int main() {
-  // read and parse expression
-  Matrix* calc_stack[MAX_CALC_STACK];
+  // initialize stack for operand matrices
+  Matrix* calc_matrices[MAX_CALC_STACK];
   int stack_pointer = -1;
 
+  // read first line to parse expression
   char exp_input[100];
   scanf("%s", &exp_input);
-
+  // parse exp_input and store the result in exp_postfix
   int exp_len = strlen(exp_input);
   char exp_postfix[exp_len + 1];
-
   unsigned char matrix_count = 0;
   parseExpression(exp_input, exp_postfix, &matrix_count);
 
@@ -324,16 +329,16 @@ int main() {
 
   // for every char of the expression...
   for (int i = 0; i < exp_len; i++) {
-    // if it a matrix operand (denoted by a letter), push it to calc_stack
+    // if it a matrix operand (denoted by a letter), push it to calc_matrices
     if (exp_postfix[i] >= 'A' && exp_postfix[i] <= 'Z') {
       int idx = exp_postfix[i] - 'A';
-      calc_stack[++stack_pointer] = input_matrices[idx];
+      calc_matrices[++stack_pointer] = input_matrices[idx];
     }
-    // otherwise, it is an operator. hence, calculate the operandstack.
+    // otherwise, it is an operator. hence, calculate the operand stack.
     else {
-      // pop operand matrix from calc_stack
-      Matrix* b = calc_stack[stack_pointer--];    // b comes first to swap
-      Matrix* a = calc_stack[stack_pointer--];
+      // pop operand matrix from calc_matrices
+      Matrix* b = calc_matrices[stack_pointer--];    // pop b first from stack to swap
+      Matrix* a = calc_matrices[stack_pointer--];
 
       // create a new matrix to store the results
       Matrix* c = createMatrix(a->row_length, b->col_length);
@@ -346,34 +351,34 @@ int main() {
       // performs operation based on the operator
       switch (exp_postfix[i]) {
       case '+':
+        // c = naiveAddSubMatrix(a, b, 1);
         // for the amount of threads we generate...
-        c = naiveAddSubMatrix(a, b, 1);
-        // for (int i = 0; i < NUM_THREAD; ++i) {
-        //   // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
-        //   ThreadArgs params;
-        //   params.id = i;
-        //   params.a = a;
-        //   params.b = b;
-        //   params.c = c;
-        //   args_pool[i] = params;
-        //   // create the thread, passing the argument struct in addition to the thread ID
-        //   pthread_create(&tid[i], NULL, &addMatrix, (void*)&args_pool[i]);
-        // }
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
+          ThreadArgs params;
+          params.id = i;
+          params.a = a;
+          params.b = b;
+          params.c = c;
+          args_pool[i] = params;
+          // create the thread, passing the argument struct in addition to the thread ID
+          pthread_create(&tid[i], NULL, &addMatrix, (void*)&args_pool[i]);
+        }
         break;
       case '-':
+        // c = naiveAddSubMatrix(a, b, -1);
         // for the amount of threads we generate...
-        c = naiveAddSubMatrix(a, b, -1);
-        // for (int i = 0; i < NUM_THREAD; ++i) {
-        //   // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
-        //   ThreadArgs params;
-        //   params.id = i;
-        //   params.a = a;
-        //   params.b = b;
-        //   params.c = c;
-        //   args_pool[i] = params;
-        //   // create the thread, passing the argument struct in addition to the thread ID
-        //   pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
-        // }
+        for (int i = 0; i < NUM_THREAD; ++i) {
+          // assign calculation parameters to a ThreadArgs struct and append the struct to args_pool
+          ThreadArgs params;
+          params.id = i;
+          params.a = a;
+          params.b = b;
+          params.c = c;
+          args_pool[i] = params;
+          // create the thread, passing the argument struct in addition to the thread ID
+          pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
+        }
         break;
       case '*':
         // for the amount of threads we generate...
@@ -397,7 +402,7 @@ int main() {
       }
 
       // put the result on stack
-      calc_stack[++stack_pointer] = c;
+      calc_matrices[++stack_pointer] = c;
 
       // free the memory of the operand matrices
       free(a);
@@ -406,7 +411,10 @@ int main() {
   }
 
   // output the results
-  printf("%d\t%d\n", calc_stack[stack_pointer]->row_length, calc_stack[stack_pointer]->col_length);
-  printMatrix(calc_stack[stack_pointer]);
+  Matrix* result = calc_matrices[stack_pointer];
+  printf("%d\t%d\n", result->row_length, result->col_length);
+  printMatrix(result);
+
+  return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
