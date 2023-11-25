@@ -1,11 +1,11 @@
 {
     "binary": 0,
-    "timeout": 100,
-    "seed": 10000001,
+    "timeout": 1,
+    "seed": 10000019,
     "params": {
-        "max_size": 1000,
-        "expr": "A*B*C*D-E+F+G+H-I+J"
+        "max_size": 100,
+        "expr": "A+B"
     },
-    "description": "complex matrix operations (smaller than ${matrixsize} * ${matrixsize}, ${timeout} sec timeout)",
+    "description": "small matrix addition (smaller than ${matrixsize} * ${matrixsize}, ${timeout} sec timeout)",
     "preparation": "cat ${filename} > /dev/null"
 }
