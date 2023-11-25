@@ -231,17 +231,13 @@ void* multiplyMatrix(void* arg) {
     pthread_exit(NULL);
 
   // in the following iterations, n is iterated as i, m is is iterated as k, and p is iterated as j.
-  // for jj as each column chunk in matrix C...
+  // explanation for the for-loops are writen in the report to avoid cluttering.
   for (int jj = (id * portion_size); jj < portion_end; jj += BLOCK_SIZE) {
-    // for kk as each k chunk...
     for (int kk = 0; kk < m; kk += BLOCK_SIZE) {
-      // for every row of matrix C...
       for (int i = 0; i < n; i++) {
-        // for every column in matrix C inside the current iteration's block...
-        for (int j = jj; j < min(min(jj + BLOCK_SIZE, portion_end), p); j++) {
-          int sum = 0;
-          // for every k in the current iteration's block...
-          for (int k = kk; k < min(kk + BLOCK_SIZE, m); k++)
+        for (int k = kk; k < min(kk + BLOCK_SIZE, m); k++)
+          for (int j = jj; j < min(min(jj + BLOCK_SIZE, portion_end), p); j++) {
+            int sum = 0;
             // sum the dot product
             sum += ((ThreadArgs*)arg)->a->data[i][k] * ((ThreadArgs*)arg)->b->data[k][j];
           // add the sum to row i column j of matrix C
