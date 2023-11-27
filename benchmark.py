@@ -25,3 +25,5 @@ with open(benchmark_result, 'r') as f:
             print(f"{test_result:.3f}")
 
 print(results)
+for i in results:
+    print(sum(i)/len(i))

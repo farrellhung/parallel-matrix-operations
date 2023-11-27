@@ -376,7 +376,7 @@ int main() {
           params.b = b;
           params.c = c;
           args_pool[i] = params;
-          // create the thread, passing the argument struct in addition to the thread ID
+          // create the thread, passing the argument struct in substraction to the thread ID
           pthread_create(&tid[i], NULL, &subtractMatrix, (void*)&args_pool[i]);
         }
         break;
@@ -390,7 +390,7 @@ int main() {
           params.b = b;
           params.c = c;
           args_pool[i] = params;
-          // create the thread, passing the argument struct in addition to the thread ID
+          // create the thread, passing the argument struct in multiplication to the thread ID
           pthread_create(&tid[i], NULL, &multiplyMatrix, (void*)&args_pool[i]);
         }
         break;
