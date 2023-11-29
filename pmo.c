@@ -13,9 +13,10 @@
 
 ////////////////////////////GLOBAL VARIABLES/STRUCTS////////////////////////////
 #define MAX_CALC_STACK 100
-#define NUM_THREAD 4
+// #define NUM_THREAD 4
 #define BLOCK_SIZE 64
 
+int NUM_THREAD;
 /**
  * @struct  Matrix
  * @brief   Represents a matrix.
@@ -342,6 +343,12 @@ int main() {
 
       // create a new matrix to store the results
       Matrix* c = createMatrix(a->row_length, b->col_length);
+
+      if (a->row_length>500|| b->col_length>500){
+        NUM_THREAD = 8;
+      } else {
+        NUM_THREAD = 4;
+      }
 
       // args_pool as an array to store different thread arguments
       ThreadArgs args_pool[NUM_THREAD];
